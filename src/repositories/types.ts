@@ -79,9 +79,83 @@ export interface DeliveriesRepo {
   resetToPending(id: string, projectId: string, now: Date): Promise<boolean>;
 }
 
+export type AccountStatus = 'connected' | 'disconnected' | 'expired';
+
+/** Conta já com os tokens em texto puro (a cifra fica dentro do repositório do Supabase). */
+export interface AccountRow {
+  id: string;
+  project_id: string;
+  account_ref: string;
+  gateway: string;
+  status: AccountStatus;
+  mp_user_id: string | null;
+  access_token: string | null;
+  refresh_token: string | null;
+  public_key: string | null;
+  expires_at: string | null;
+  connected_at: string | null;
+  disconnected_at: string | null;
+  last_refresh_at: string | null;
+  last_error: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface UpsertConnected {
+  project_id: string;
+  account_ref: string;
+  mp_user_id: string;
+  access_token: string;
+  refresh_token: string;
+  public_key: string | null;
+  expires_at: string;
+  connected_at: string;
+}
+
+export interface TokensNovos {
+  access_token: string;
+  refresh_token: string;
+  public_key: string | null;
+  expires_at: string;
+  last_refresh_at: string;
+}
+
+export interface AccountsRepo {
+  findByRef(projectId: string, accountRef: string): Promise<AccountRow | null>;
+  /** Só as contas `connected` do projeto com esse usuário do MP. */
+  findConnectedByMpUserId(projectId: string, mpUserId: string): Promise<AccountRow[]>;
+  upsertConnected(row: UpsertConnected): Promise<AccountRow>;
+  /** Apaga access_token e refresh_token. */
+  markDisconnected(id: string, status: 'disconnected' | 'expired', now: Date, lastError?: string): Promise<AccountRow>;
+  updateTokens(id: string, tokens: TokensNovos): Promise<void>;
+  setLastError(id: string, msg: string): Promise<void>;
+  /** Contas `connected` com expires_at antes de `before` (de todos os projetos). */
+  listToRefresh(before: Date, limit: number): Promise<AccountRow[]>;
+}
+
+export interface OAuthStateRow {
+  state: string;
+  project_id: string;
+  account_ref: string;
+  return_url: string;
+  expires_at: string;
+  used_at: string | null;
+  created_at: string;
+}
+
+export type NovoOAuthState = Pick<OAuthStateRow, 'state' | 'project_id' | 'account_ref' | 'return_url' | 'expires_at'>;
+
+export interface OAuthStatesRepo {
+  create(row: NovoOAuthState): Promise<void>;
+  /** Devolve a linha se existia e não estava usada (marcando used_at de uma vez); senão null. */
+  consume(state: string, now: Date): Promise<OAuthStateRow | null>;
+}
+
 export interface Repos {
   projects: ProjectsRepo;
   configs: ConfigsRepo;
   events: EventsRepo;
   deliveries: DeliveriesRepo;
+  accounts: AccountsRepo;
+  oauthStates: OAuthStatesRepo;
 }

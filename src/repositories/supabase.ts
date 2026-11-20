@@ -1,13 +1,17 @@
 import { supabase } from '../database/supabase.client';
-import { decrypt } from '../crypto/config.crypto';
+import { decrypt, encrypt } from '../crypto/config.crypto';
 import { GatewayConfig, Project } from '../payments/payment.types';
 import {
+  AccountRow,
+  AccountsRepo,
   ConfigsRepo,
   DeliveriesRepo,
   DeliveryRow,
   EventRow,
   EventsRepo,
   FailedDeliveryInfo,
+  OAuthStateRow,
+  OAuthStatesRepo,
   ProjectsRepo,
   Repos,
 } from './types';
@@ -172,4 +176,127 @@ const deliveries: DeliveriesRepo = {
   },
 };
 
-export const supabaseRepos: Repos = { projects, configs, events, deliveries };
+const cifrar = (v: string | null | undefined) => (v ? encrypt(v) : null);
+const decifrar = (v: unknown) => (typeof v === 'string' && v ? decrypt(v) : null);
+
+function paraConta(d: Record<string, unknown>): AccountRow {
+  return {
+    ...(d as unknown as AccountRow),
+    access_token: decifrar(d['access_token']),
+    refresh_token: decifrar(d['refresh_token']),
+  };
+}
+
+const accounts: AccountsRepo = {
+  async findByRef(projectId, accountRef) {
+    const { data } = await db()
+      .from('connected_accounts')
+      .select('*')
+      .eq('project_id', projectId)
+      .eq('account_ref', accountRef)
+      .maybeSingle();
+    return data ? paraConta(data) : null;
+  },
+  async findConnectedByMpUserId(projectId, mpUserId) {
+    const { data } = await db()
+      .from('connected_accounts')
+      .select('*')
+      .eq('project_id', projectId)
+      .eq('mp_user_id', mpUserId)
+      .eq('status', 'connected');
+    return (data ?? []).map(paraConta);
+  },
+  async upsertConnected(row) {
+    const { data, error } = await db()
+      .from('connected_accounts')
+      .upsert(
+        {
+          project_id: row.project_id,
+          account_ref: row.account_ref,
+          gateway: 'mercadopago',
+          status: 'connected',
+          mp_user_id: row.mp_user_id,
+          access_token: cifrar(row.access_token),
+          refresh_token: cifrar(row.refresh_token),
+          public_key: row.public_key,
+          expires_at: row.expires_at,
+          connected_at: row.connected_at,
+          disconnected_at: null,
+          last_error: null,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: 'project_id,account_ref' }
+      )
+      .select('*')
+      .single();
+    if (error || !data) throw new Error(`Falha ao gravar a conta conectada: ${error?.message}`);
+    return paraConta(data);
+  },
+  async markDisconnected(id, status, now, lastError) {
+    const { data, error } = await db()
+      .from('connected_accounts')
+      .update({
+        status,
+        access_token: null,
+        refresh_token: null,
+        disconnected_at: now.toISOString(),
+        last_error: lastError ?? null,
+        updated_at: now.toISOString(),
+      })
+      .eq('id', id)
+      .select('*')
+      .single();
+    if (error || !data) throw new Error(`Falha ao desconectar a conta: ${error?.message}`);
+    return paraConta(data);
+  },
+  async updateTokens(id, t) {
+    const { error } = await db()
+      .from('connected_accounts')
+      .update({
+        access_token: cifrar(t.access_token),
+        refresh_token: cifrar(t.refresh_token),
+        public_key: t.public_key,
+        expires_at: t.expires_at,
+        last_refresh_at: t.last_refresh_at,
+        last_error: null,
+        updated_at: t.last_refresh_at,
+      })
+      .eq('id', id);
+    if (error) throw new Error(`Falha ao renovar os tokens: ${error.message}`);
+  },
+  async setLastError(id, msg) {
+    const { error } = await db()
+      .from('connected_accounts')
+      .update({ last_error: msg, updated_at: new Date().toISOString() })
+      .eq('id', id);
+    if (error) throw new Error(`Falha ao gravar o erro da conta: ${error.message}`);
+  },
+  async listToRefresh(before, limit) {
+    const { data } = await db()
+      .from('connected_accounts')
+      .select('*')
+      .eq('status', 'connected')
+      .lt('expires_at', before.toISOString())
+      .order('expires_at', { ascending: true })
+      .limit(limit);
+    return (data ?? []).map(paraConta);
+  },
+};
+
+const oauthStates: OAuthStatesRepo = {
+  async create(row) {
+    const { error } = await db().from('oauth_states').insert(row);
+    if (error) throw new Error(`Falha ao gravar o state do OAuth: ${error.message}`);
+  },
+  async consume(state, now) {
+    const { data } = await db()
+      .from('oauth_states')
+      .update({ used_at: now.toISOString() })
+      .eq('state', state)
+      .is('used_at', null)
+      .select('*');
+    return data && data.length > 0 ? (data[0] as OAuthStateRow) : null;
+  },
+};
+
+export const supabaseRepos: Repos = { projects, configs, events, deliveries, accounts, oauthStates };

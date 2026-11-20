@@ -1,6 +1,10 @@
 import { randomUUID } from 'crypto';
 import { GatewayConfig, Project } from '../../src/payments/payment.types';
 import {
+  AccountRow,
+  AccountsRepo,
+  OAuthStateRow,
+  OAuthStatesRepo,
   DeliveriesRepo,
   DeliveryRow,
   EventRow,
@@ -88,8 +92,51 @@ export function fakeRepos(opts: { projects?: Project[]; configs?: GatewayConfig[
       return true;
     },
   };
-  const repos: Repos = { projects: p, configs: c, events: e, deliveries: d };
-  return { repos, projects, configs, events, deliveries };
+  const accounts: AccountRow[] = [];
+  const states: OAuthStateRow[] = [];
+  const a: AccountsRepo = {
+    async findByRef(pid, ref) { return accounts.find((x) => x.project_id === pid && x.account_ref === ref) ?? null; },
+    async findConnectedByMpUserId(pid, mp) {
+      return accounts.filter((x) => x.project_id === pid && x.mp_user_id === mp && x.status === 'connected');
+    },
+    async upsertConnected(r) {
+      const agora = new Date().toISOString();
+      let x = accounts.find((y) => y.project_id === r.project_id && y.account_ref === r.account_ref);
+      if (!x) {
+        x = { id: randomUUID(), gateway: 'mercadopago', created_at: agora, disconnected_at: null, last_refresh_at: null } as AccountRow;
+        accounts.push(x);
+      }
+      Object.assign(x, {
+        project_id: r.project_id, account_ref: r.account_ref, status: 'connected', mp_user_id: r.mp_user_id,
+        access_token: r.access_token, refresh_token: r.refresh_token, public_key: r.public_key, expires_at: r.expires_at,
+        connected_at: r.connected_at, disconnected_at: null, last_error: null, updated_at: agora,
+      });
+      return { ...x };
+    },
+    async markDisconnected(id, status, now, lastError) {
+      const x = accounts.find((y) => y.id === id)!;
+      Object.assign(x, { status, access_token: null, refresh_token: null, disconnected_at: now.toISOString(), last_error: lastError ?? null });
+      return { ...x };
+    },
+    async updateTokens(id, t) {
+      Object.assign(accounts.find((y) => y.id === id)!, { ...t, last_error: null });
+    },
+    async setLastError(id, msg) { accounts.find((y) => y.id === id)!.last_error = msg; },
+    async listToRefresh(before, limit) {
+      return accounts.filter((x) => x.status === 'connected' && x.expires_at && new Date(x.expires_at) < before).slice(0, limit).map((x) => ({ ...x }));
+    },
+  };
+  const o: OAuthStatesRepo = {
+    async create(r) { states.push({ ...r, used_at: null, created_at: new Date().toISOString() }); },
+    async consume(state, now) {
+      const x = states.find((y) => y.state === state && !y.used_at);
+      if (!x) return null;
+      x.used_at = now.toISOString();
+      return { ...x };
+    },
+  };
+  const repos: Repos = { projects: p, configs: c, events: e, deliveries: d, accounts: a, oauthStates: o };
+  return { repos, projects, configs, events, deliveries, accounts, states };
 }
 
 export const projetoExemplo: Project = {
