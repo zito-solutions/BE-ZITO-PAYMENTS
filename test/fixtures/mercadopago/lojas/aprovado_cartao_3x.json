@@ -1,0 +1,28 @@
+{
+  "id": 900001,
+  "status": "approved",
+  "status_detail": "accredited",
+  "external_reference": "pedido-1001",
+  "transaction_amount": 150.0,
+  "transaction_amount_refunded": 0,
+  "installments": 3,
+  "currency_id": "BRL",
+  "date_created": "2026-11-20T10:00:00.000-04:00",
+  "date_approved": "2026-11-20T10:01:00.000-04:00",
+  "date_of_expiration": null,
+  "payment_method_id": "visa",
+  "payment_type_id": "credit_card",
+  "fee_details": [
+    {
+      "amount": 7.5,
+      "fee_payer": "collector",
+      "type": "mercadopago_fee"
+    }
+  ],
+  "metadata": {},
+  "payer": {
+    "email": "cliente.ficticia@exemplo.com.br",
+    "first_name": "Maria",
+    "last_name": "Ficticia"
+  }
+}

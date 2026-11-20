@@ -5,6 +5,7 @@ import { StripeGateway } from '../../src/gateways/stripe/stripe.gateway';
 import { MercadoPagoGateway } from '../../src/gateways/mercadopago/mercadopago.gateway';
 import { MPClient } from '../../src/gateways/mercadopago/mercadopago.client';
 import { OAuthGateway } from '../../src/gateways/mercadopago/oauth';
+import { CheckoutLojas } from '../../src/gateways/mercadopago/lojas';
 import { PostFn } from '../../src/callbacks/entregar';
 import { fakeRepos, projetoExemplo } from './fakes';
 
@@ -38,6 +39,7 @@ export async function subirApp(mpClient: MPClient, opts: { comConfigMP?: boolean
     ],
   });
   const stripe = { webhooks: { constructEvent: vi.fn() } };
+  const tokensUsados: string[] = [];
   const envios: Array<{ url: string; headers: Record<string, string>; body: string }> = [];
   const post: PostFn = async (url, init) => {
     envios.push({ url, ...init });
@@ -49,6 +51,7 @@ export async function subirApp(mpClient: MPClient, opts: { comConfigMP?: boolean
     entrega: { repos: f.repos, post },
     buildMercadoPago,
     oauth: opts.oauth ?? oauthFalso(),
+    buildCheckoutLojas: (ambiente, token) => { tokensUsados.push(token); return new CheckoutLojas(ambiente, mpClient); },
     buildGateway: (c) =>
       c.gateway === 'stripe'
         ? new StripeGateway(c.config as never, stripe as never)
@@ -58,5 +61,5 @@ export async function subirApp(mpClient: MPClient, opts: { comConfigMP?: boolean
   });
   const server = app.listen(0);
   const url = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
-  return { ...f, stripe, envios, url, fechar: () => new Promise<void>((r) => server.close(() => r())) };
+  return { ...f, stripe, envios, tokensUsados, url, fechar: () => new Promise<void>((r) => server.close(() => r())) };
 }

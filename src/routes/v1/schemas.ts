@@ -48,3 +48,47 @@ export const conectarConta = z.object({
   account_ref: z.string().min(1).max(100),
   return_url: z.url(),
 });
+
+/* ---------- checkout das lojas (TASK-398) ---------- */
+
+const MIN_EXPIRA_MS = 5 * 60_000;
+const MAX_EXPIRA_MS = 3 * 24 * 3_600_000;
+
+export const criarPreferencia = z.object({
+  account_ref: z.string().min(1).max(100),
+  reference: z.string().min(1).max(100),
+  items: z
+    .array(
+      z.object({
+        title: z.string().min(1).max(120),
+        quantity: z.number().int().min(1).max(99),
+        unit_price_cents: cents,
+      })
+    )
+    .min(1)
+    .max(50),
+  shipping_cents: z.number().int().min(0),
+  payer: z.object({ name: z.string().min(1).max(120), phone: z.string().max(20).optional() }),
+  back_url: z.url(),
+  expires_at: dataISO.refine(
+    (v) => {
+      const dif = Date.parse(v) - Date.now();
+      return dif >= MIN_EXPIRA_MS && dif <= MAX_EXPIRA_MS;
+    },
+    { message: 'precisa ser entre 5 minutos e 3 dias a partir de agora' }
+  ),
+  max_installments: z.number().int().min(1).max(12),
+});
+
+export const contaDoPagamento = z.object({ account_ref: z.string().min(1).max(100) });
+
+export const pagamentosPorReferencia = z.object({
+  account_ref: z.string().min(1).max(100),
+  reference: z.string().min(1).max(100),
+});
+
+export const estornarLoja = z.object({
+  account_ref: z.string().min(1).max(100),
+  amount_cents: cents.optional(),
+  idempotency_key: z.string().min(8).max(100),
+});

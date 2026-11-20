@@ -27,6 +27,9 @@ export interface MPPayment {
   status_detail?: string;
   external_reference?: string | null;
   transaction_amount?: number;
+  transaction_amount_refunded?: number;
+  installments?: number;
+  date_created?: string;
   payment_method_id?: string;
   payment_type_id?: string;
   date_approved?: string | null;

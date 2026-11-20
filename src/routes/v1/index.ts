@@ -7,6 +7,7 @@ import { MercadoPagoGateway } from '../../gateways/mercadopago/mercadopago.gatew
 import * as S from './schemas';
 import { HttpError, param, resumoZod, validar } from './util';
 import { montarRotasContas } from './accounts';
+import { montarRotasCheckout } from './checkout';
 
 export function createV1Router(deps: AppDeps): Router {
   const router = Router();
@@ -15,7 +16,8 @@ export function createV1Router(deps: AppDeps): Router {
   router.use((req: Request, res: Response, next: NextFunction) => {
     res.on('finish', () => {
       const rota = `${req.method} ${req.baseUrl}${req.route?.path ?? req.path}`;
-      console.log(`[${req.project?.name ?? '-'}] [mercadopago] ${rota} ${res.statusCode}`);
+      const gw = req.path.startsWith('/checkout') ? 'mercadopago_lojas' : 'mercadopago';
+      console.log(`[${req.project?.name ?? '-'}] [${gw}] ${rota} ${res.statusCode}`);
     });
     next();
   });
@@ -103,6 +105,7 @@ export function createV1Router(deps: AppDeps): Router {
   }));
 
   montarRotasContas(router, deps, tratar);
+  montarRotasCheckout(router, deps, tratar);
 
   // callbacks que não chegaram (não dependem do gateway)
   router.get('/callbacks/failed', tratar(async (req, res) => {

@@ -1,0 +1,22 @@
+{
+  "id": 900003,
+  "status": "cancelled",
+  "status_detail": "expired",
+  "external_reference": "pedido-1001",
+  "transaction_amount": 150.0,
+  "transaction_amount_refunded": 0,
+  "installments": 1,
+  "currency_id": "BRL",
+  "date_created": "2026-11-20T10:00:00.000-04:00",
+  "date_approved": null,
+  "date_of_expiration": "2026-11-20T11:00:00.000-03:00",
+  "payment_method_id": "pix",
+  "payment_type_id": "bank_transfer",
+  "fee_details": [],
+  "metadata": {},
+  "payer": {
+    "email": "cliente.ficticia@exemplo.com.br",
+    "first_name": "Maria",
+    "last_name": "Ficticia"
+  }
+}

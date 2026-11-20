@@ -11,7 +11,7 @@ const STATE_VALE_MS = 10 * 60_000;
 type Tratar = (fn: (req: Request, res: Response) => Promise<void>) => RequestHandler;
 
 /** `return_url` tem que ser https; http só em localhost no ambiente de teste. */
-function returnUrlValido(url: string, ambiente: 'teste' | 'producao'): boolean {
+export function returnUrlValido(url: string, ambiente: 'teste' | 'producao'): boolean {
   const u = new URL(url);
   if (u.protocol === 'https:') return true;
   return ambiente === 'teste' && u.protocol === 'http:' && (u.hostname === 'localhost' || u.hostname === '127.0.0.1');

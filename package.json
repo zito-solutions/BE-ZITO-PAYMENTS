@@ -8,7 +8,8 @@
     "start": "node dist/index.js",
     "test": "vitest run",
     "migrate": "npx supabase db push --project-ref jqctrijoujrqpjqqvaev",
-    "test:sandbox": "vitest run --config vitest.sandbox.config.ts"
+    "test:sandbox": "vitest run --config vitest.sandbox.config.ts",
+    "test:sandbox:lojas": "vitest run --config vitest.sandbox.config.ts test/sandbox/lojas.sandbox.test.ts"
   },
   "keywords": [],
   "author": "",

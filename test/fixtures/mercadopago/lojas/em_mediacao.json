@@ -1,0 +1,22 @@
+{
+  "id": 900005,
+  "status": "in_mediation",
+  "status_detail": "in_process",
+  "external_reference": "pedido-1001",
+  "transaction_amount": 150.0,
+  "transaction_amount_refunded": 0,
+  "installments": 1,
+  "currency_id": "BRL",
+  "date_created": "2026-11-20T10:00:00.000-04:00",
+  "date_approved": "2026-11-20T10:01:00.000-04:00",
+  "date_of_expiration": null,
+  "payment_method_id": "visa",
+  "payment_type_id": "credit_card",
+  "fee_details": [],
+  "metadata": {},
+  "payer": {
+    "email": "cliente.ficticia@exemplo.com.br",
+    "first_name": "Maria",
+    "last_name": "Ficticia"
+  }
+}

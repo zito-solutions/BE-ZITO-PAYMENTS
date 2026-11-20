@@ -1,12 +1,13 @@
 import express, { Express } from 'express';
 import path from 'node:path';
-import { PaymentGateway } from './gateways/gateway.interface';
+import { Ambiente, PaymentGateway } from './gateways/gateway.interface';
 import { GatewayConfig } from './payments/payment.types';
 import { Repos } from './repositories/types';
 import { EntregaDeps } from './callbacks/entregar';
 import { MercadoPagoGateway } from './gateways/mercadopago/mercadopago.gateway';
 import { createWebhookRoute } from './routes/webhook.route';
 import { OAuthGateway } from './gateways/mercadopago/oauth';
+import { CheckoutLojas } from './gateways/mercadopago/lojas';
 import { createOAuthRouter } from './routes/oauth.route';
 import { createV1Router } from './routes/v1';
 import checkoutRoute from './routes/checkout.route';
@@ -20,6 +21,8 @@ export interface AppDeps {
   buildMercadoPago: (config: GatewayConfig) => MercadoPagoGateway;
   /** OAuth do Mercado Pago (troca de code, renovação, conferência da conta); os testes trocam por um falso. */
   oauth: OAuthGateway;
+  /** Checkout das lojas com o token da lojista (TASK-398); os testes trocam o cliente do MP por um falso. */
+  buildCheckoutLojas: (ambiente: Ambiente, accessToken: string) => CheckoutLojas;
 }
 
 export function createApp(deps: AppDeps): Express {
