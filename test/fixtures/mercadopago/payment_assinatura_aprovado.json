@@ -1,0 +1,118 @@
+{
+  "binary_mode": true,
+  "brand_id": null,
+  "build_version": "3.188.0-rc-5",
+  "call_for_authorize_id": null,
+  "captured": true,
+  "charges_execution_info": {
+    "internal_execution": {
+      "date": "2026-11-20T09:46:28.310-04:00",
+      "execution_id": "01M7WKAS1Q8K227K0SVRQG9KKC"
+    }
+  },
+  "corporation_id": null,
+  "counter_currency": null,
+  "coupon_amount": 0,
+  "currency_id": "BRL",
+  "date_approved": "2026-11-20T09:46:28.000-04:00",
+  "date_created": "2026-11-20T09:46:28.000-04:00",
+  "date_last_updated": "2026-11-20T09:46:28.000-04:00",
+  "date_of_expiration": null,
+  "deduction_schema": null,
+  "description": "Teste hub Zito",
+  "differential_pricing_id": null,
+  "external_reference": "sandbox-apro-1795182386345",
+  "fee_details": [
+    {
+      "amount": 0.5,
+      "fee_payer": "collector",
+      "type": "mercadopago_fee"
+    }
+  ],
+  "financing_group": null,
+  "id": 190694691460,
+  "idempotency_key": "ficticia",
+  "installments": 1,
+  "integrator_id": null,
+  "issuer_id": "25",
+  "live_mode": true,
+  "marketplace_owner": null,
+  "merchant_account_id": null,
+  "merchant_number": null,
+  "metadata": {},
+  "money_release_date": "2026-11-20T09:46:28.000-04:00",
+  "money_release_schema": null,
+  "money_release_status": "released",
+  "notification_url": null,
+  "operation_type": "regular_payment",
+  "order": {},
+  "payment_method": {
+    "data": {
+      "routing_data": {
+        "merchant_account_id": "7187497"
+      }
+    },
+    "id": "visa",
+    "issuer_id": "25",
+    "type": "credit_card"
+  },
+  "payment_method_id": "visa",
+  "payment_type_id": "credit_card",
+  "platform_id": null,
+  "point_of_interaction": {
+    "application_data": {
+      "name": null,
+      "operating_system": null,
+      "version": null
+    },
+    "business_info": {
+      "branch": "Merchant Services",
+      "sub_unit": "recurring",
+      "unit": "online_payments"
+    },
+    "location": {
+      "source": "payer",
+      "state_id": "NN"
+    },
+    "references": [
+      {
+        "id": "a798908a569e44839418bc1e603787a7",
+        "type": "AUTOMATIC_PAYMENTS_ATTEMPT"
+      }
+    ],
+    "transaction_data": {
+      "billing_date": "2026-11-20",
+      "first_time_use": true,
+      "invoice_id": "a6d5bf8796784fdb99562d7c0bf37593",
+      "invoice_period": {
+        "period": 1,
+        "type": "monthly"
+      },
+      "payment_reference": null,
+      "plan_id": "48270640cc9a410f8ff73bafce93956c",
+      "processor": null,
+      "subscription_id": "445c5f9321b04469b4ad9aa6a6aa4d66",
+      "subscription_sequence": {
+        "number": 1,
+        "total": null
+      },
+      "user_present": true
+    },
+    "type": "SUBSCRIPTIONS"
+  },
+  "pos_id": null,
+  "processing_mode": "aggregator",
+  "refunds": [],
+  "release_info": null,
+  "shipping_amount": 0,
+  "sponsor_id": null,
+  "statement_descriptor": "Mercadopago*fake",
+  "status": "approved",
+  "status_detail": "accredited",
+  "store_id": null,
+  "tags": null,
+  "taxes_amount": 0,
+  "tenant_context": "mp",
+  "transaction_amount": 19.9,
+  "transaction_amount_refunded": 0
+}

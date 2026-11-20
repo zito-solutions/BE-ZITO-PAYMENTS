@@ -3,6 +3,7 @@ export interface Project {
   name: string;
   api_key: string;
   callback_url: string;
+  callback_secret: string;
 }
 
 export interface GatewayConfig {

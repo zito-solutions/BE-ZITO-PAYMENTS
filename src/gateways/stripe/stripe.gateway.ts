@@ -4,6 +4,7 @@ import {
   CheckoutParams,
   PaymentGateway,
   SubscriptionStatus,
+  WebhookInput,
   WebhookResult,
 } from '../gateway.interface';
 
@@ -37,9 +38,9 @@ export class StripeGateway implements PaymentGateway {
   private stripe: StripeInstance;
   private config: StripeConfig;
 
-  constructor(config: StripeConfig) {
+  constructor(config: StripeConfig, stripe?: StripeInstance) {
     this.config = config;
-    this.stripe = new StripeLib(config.secret_key);
+    this.stripe = stripe ?? new StripeLib(config.secret_key);
   }
 
   async createCheckoutLink(params: CheckoutParams): Promise<string> {
@@ -59,11 +60,9 @@ export class StripeGateway implements PaymentGateway {
     return session.url;
   }
 
-  async handleWebhookEvent(
-    rawBody: Buffer,
-    signature: string
-  ): Promise<WebhookResult | null> {
+  async handleWebhookEvent({ rawBody, headers }: WebhookInput): Promise<WebhookResult | null> {
     let event: EventLike;
+    const signature = headers['stripe-signature'] as string;
 
     try {
       event = this.stripe.webhooks.constructEvent(

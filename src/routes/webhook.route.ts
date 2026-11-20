@@ -1,10 +1,13 @@
 import { Router } from 'express';
 import express from 'express';
-import { handleWebhook } from '../webhook/webhook.controller';
+import { createWebhookHandler } from '../webhook/webhook.controller';
+import type { AppDeps } from '../app';
 
-const router = Router();
+export function createWebhookRoute(deps: AppDeps): Router {
+  const router = Router();
 
-// MUST use express.raw() before express.json() for Stripe signature validation
-router.post('/:gateway', express.raw({ type: 'application/json' }), handleWebhook);
+  // MUST use express.raw() before express.json() for Stripe signature validation
+  router.post('/:gateway', express.raw({ type: 'application/json' }), createWebhookHandler(deps));
 
-export default router;
+  return router;
+}
