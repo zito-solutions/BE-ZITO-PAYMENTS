@@ -4,19 +4,36 @@ import { createApp } from '../../src/app';
 import { StripeGateway } from '../../src/gateways/stripe/stripe.gateway';
 import { MercadoPagoGateway } from '../../src/gateways/mercadopago/mercadopago.gateway';
 import { MPClient } from '../../src/gateways/mercadopago/mercadopago.client';
+import { OAuthGateway } from '../../src/gateways/mercadopago/oauth';
 import { PostFn } from '../../src/callbacks/entregar';
 import { fakeRepos, projetoExemplo } from './fakes';
 
 export const SEGREDO_MP = 'segredo-do-webhook-mp';
 export const TOKEN_MP = 'APP_USR-token-que-nunca-pode-aparecer';
 
-export async function subirApp(mpClient: MPClient, opts: { comConfigMP?: boolean } = {}) {
+export const CONFIG_LOJAS = {
+  client_id: '123456',
+  client_secret: 'client-secret-que-nunca-pode-aparecer',
+  webhook_secret: 'segredo-do-webhook-lojas',
+  ambiente: 'teste',
+  redirect_uri: 'https://pagamentos.zitosolutions.com.br/oauth/mercadopago/retorno',
+};
+
+export const oauthFalso = (p: Partial<OAuthGateway> = {}): OAuthGateway => ({
+  trocarCodigo: async () => { throw new Error('não previsto'); },
+  renovarToken: async () => { throw new Error('não previsto'); },
+  contaAindaValida: async () => { throw new Error('não previsto'); },
+  ...p,
+});
+
+export async function subirApp(mpClient: MPClient, opts: { comConfigMP?: boolean; oauth?: OAuthGateway; configLojas?: Record<string, string> | null } = {}) {
   const f = fakeRepos({
     projects: [{ ...projetoExemplo }],
     configs: [
       ...(opts.comConfigMP === false
         ? []
         : [{ id: 'c1', project_id: projetoExemplo.id, gateway: 'mercadopago', config: { access_token: TOKEN_MP, webhook_secret: SEGREDO_MP, ambiente: 'teste' } }]),
+      ...(opts.configLojas === null ? [] : [{ id: 'c3', project_id: projetoExemplo.id, gateway: 'mercadopago_lojas', config: opts.configLojas ?? CONFIG_LOJAS }]),
       { id: 'c2', project_id: projetoExemplo.id, gateway: 'stripe', config: { secret_key: 'sk', webhook_secret: 'whsec', price_id: 'p', success_url: 's', cancel_url: 'c' } },
     ],
   });
@@ -31,6 +48,7 @@ export async function subirApp(mpClient: MPClient, opts: { comConfigMP?: boolean
     repos: f.repos,
     entrega: { repos: f.repos, post },
     buildMercadoPago,
+    oauth: opts.oauth ?? oauthFalso(),
     buildGateway: (c) =>
       c.gateway === 'stripe'
         ? new StripeGateway(c.config as never, stripe as never)

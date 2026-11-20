@@ -28,7 +28,7 @@ export interface EntregaDeps {
 
 /** Corpo do callback, sempre reconstruído do evento gravado: o reenvio sai igual ao original. */
 export function montarCorpo(evento: EventRow): string {
-  const payload = (evento.payload ?? {}) as { data?: { subscription?: unknown; payment?: unknown } };
+  const payload = (evento.payload ?? {}) as { data?: { subscription?: unknown; payment?: unknown; account?: unknown } };
   return JSON.stringify({
     id: evento.id,
     event: evento.event_type,
@@ -39,6 +39,7 @@ export function montarCorpo(evento: EventRow): string {
     data: {
       subscription: payload.data?.subscription ?? null,
       payment: payload.data?.payment ?? null,
+      account: payload.data?.account ?? null,
     },
   });
 }

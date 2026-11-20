@@ -16,6 +16,7 @@ import { createApp } from '../../src/app';
 import { MercadoPagoClient } from '../../src/gateways/mercadopago/mercadopago.client';
 import { MercadoPagoGateway } from '../../src/gateways/mercadopago/mercadopago.gateway';
 import { StripeGateway } from '../../src/gateways/stripe/stripe.gateway';
+import { oauthMercadoPago } from '../../src/gateways/mercadopago/oauth';
 import { fakeRepos, projetoExemplo } from '../helpers/fakes';
 import { emailComprador, lerCredenciais } from './credenciais';
 
@@ -30,7 +31,7 @@ async function main() {
   });
   const build = (c: { config: Record<string, string> }) => new MercadoPagoGateway(c.config as never);
   const hub = createApp({
-    repos: f.repos, entrega: { repos: f.repos }, buildMercadoPago: build,
+    repos: f.repos, entrega: { repos: f.repos }, buildMercadoPago: build, oauth: oauthMercadoPago,
     buildGateway: (c) => (c.gateway === 'mercadopago' ? build(c) : new StripeGateway(c.config as never)),
   });
 

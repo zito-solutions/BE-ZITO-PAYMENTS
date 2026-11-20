@@ -38,6 +38,20 @@ async function novoEvento(f: ReturnType<typeof fakeRepos>) {
   return ev!;
 }
 
+describe('montarCorpo', () => {
+  it('todo callback leva data.account (null nos eventos antigos)', async () => {
+    const m = montar();
+    const antigo = JSON.parse(montarCorpo((await novoEvento(m.f))));
+    expect(antigo.data).toEqual({ subscription: null, payment: { id: '1' }, account: null });
+    const conta = { account_ref: 'loja-1', status: 'connected' };
+    const ev = await m.f.repos.events.insert({
+      project_id: projetoExemplo.id, gateway: 'mercadopago', event_type: 'account.connected', customer_ref: 'loja-1',
+      gateway_event_id: 'x', payload: { data: { subscription: null, payment: null, account: conta } },
+    });
+    expect(JSON.parse(montarCorpo(ev!)).data.account).toEqual(conta);
+  });
+});
+
 describe('entrega do callback', () => {
   it('entrega na hora com cabeçalhos e assinatura', async () => {
     const m = montar();
