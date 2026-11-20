@@ -6,6 +6,8 @@ import { Repos } from './repositories/types';
 import { EntregaDeps } from './callbacks/entregar';
 import { MercadoPagoGateway } from './gateways/mercadopago/mercadopago.gateway';
 import { createWebhookRoute } from './routes/webhook.route';
+import { OAuthGateway } from './gateways/mercadopago/oauth';
+import { createOAuthRouter } from './routes/oauth.route';
 import { createV1Router } from './routes/v1';
 import checkoutRoute from './routes/checkout.route';
 import subscriptionRoute from './routes/subscription.route';
@@ -16,6 +18,8 @@ export interface AppDeps {
   entrega: EntregaDeps;
   buildGateway: (config: GatewayConfig) => PaymentGateway;
   buildMercadoPago: (config: GatewayConfig) => MercadoPagoGateway;
+  /** OAuth do Mercado Pago (troca de code, renovação, conferência da conta); os testes trocam por um falso. */
+  oauth: OAuthGateway;
 }
 
 export function createApp(deps: AppDeps): Express {
@@ -25,6 +29,7 @@ export function createApp(deps: AppDeps): Express {
   app.use('/webhook', createWebhookRoute(deps));
 
   app.use(express.json());
+  app.use('/oauth', createOAuthRouter(deps));
   app.use(express.static(path.join(__dirname, 'public')));
 
   app.get('/health', (_req, res) => {

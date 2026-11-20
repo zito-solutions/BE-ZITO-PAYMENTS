@@ -1,34 +1,12 @@
 import { NextFunction, Request, RequestHandler, Response, Router } from 'express';
-import { ZodError, ZodType } from 'zod';
+import { ZodError } from 'zod';
 import type { AppDeps } from '../../app';
 import { projectAuth } from '../../middleware/project.auth';
 import { MercadoPagoError } from '../../gateways/mercadopago/mercadopago.client';
 import { MercadoPagoGateway } from '../../gateways/mercadopago/mercadopago.gateway';
 import * as S from './schemas';
-
-class HttpError extends Error {
-  constructor(public status: number, public code: string, message: string) {
-    super(message);
-  }
-}
-
-function validar<T>(schema: ZodType<T>, dados: unknown): T {
-  const r = schema.safeParse(dados ?? {});
-  if (r.success) return r.data;
-  throw r.error;
-}
-
-function resumoZod(err: ZodError): string {
-  const i = err.issues[0];
-  if (!i) return 'Dados inválidos';
-  const campo = i.path.join('.');
-  return campo ? `${campo}: ${i.message}` : i.message;
-}
-
-function param(req: Request, nome: string): string {
-  const v = req.params[nome];
-  return Array.isArray(v) ? (v[0] ?? '') : (v ?? '');
-}
+import { HttpError, param, resumoZod, validar } from './util';
+import { montarRotasContas } from './accounts';
 
 export function createV1Router(deps: AppDeps): Router {
   const router = Router();
@@ -123,6 +101,8 @@ export function createV1Router(deps: AppDeps): Router {
     const { idempotency_key } = validar(S.reembolsar, req.body);
     res.json(await mp.reembolsar(param(req, 'id'), idempotency_key));
   }));
+
+  montarRotasContas(router, deps, tratar);
 
   // callbacks que não chegaram (não dependem do gateway)
   router.get('/callbacks/failed', tratar(async (req, res) => {

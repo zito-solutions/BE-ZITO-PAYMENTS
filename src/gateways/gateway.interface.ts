@@ -35,6 +35,30 @@ export interface Payment {
   ambiente: Ambiente;
 }
 
+export interface ConnectedAccount {
+  account_ref: string;
+  status: 'connected' | 'disconnected' | 'expired';
+  mp_user_id: string | null;
+  connected_at: string | null;
+  expires_at: string | null;
+  ambiente: Ambiente;
+}
+
+/** Pagamento do checkout das lojas (TASK-398). */
+export interface PaymentLoja extends Payment {
+  account_ref: string;
+  installments: number | null;
+  refunded_cents: number;
+  disputed: boolean;
+}
+
+export interface Preferencia {
+  id: string;
+  init_point: string;
+  expires_at: string;
+  ambiente: Ambiente;
+}
+
 export type WebhookEventName =
   | 'subscription.activated'
   | 'subscription.payment_approved'
@@ -42,13 +66,19 @@ export type WebhookEventName =
   | 'subscription.cancelled'
   | 'payment.approved'
   | 'payment.expired'
-  | 'payment.refunded';
+  | 'payment.refunded'
+  | 'account.connected'
+  | 'account.disconnected'
+  | 'order.payment_approved'
+  | 'order.payment_expired'
+  | 'order.payment_refunded'
+  | 'order.payment_disputed';
 
 export interface WebhookResult {
   event: WebhookEventName;
   customer_ref: string;
   gateway_event_id: string;
-  data?: { subscription: Subscription | null; payment: Payment | null };
+  data?: { subscription: Subscription | null; payment: Payment | PaymentLoja | null; account?: ConnectedAccount | null };
 }
 
 export interface WebhookInput {

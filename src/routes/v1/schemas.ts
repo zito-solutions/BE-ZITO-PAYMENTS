@@ -43,3 +43,8 @@ export const criarPix = z.object({
 export const reembolsar = z.object({ idempotency_key: z.string().min(1).max(128) });
 
 export const consultaPorReferencia = z.object({ reference: texto });
+
+export const conectarConta = z.object({
+  account_ref: z.string().min(1).max(100),
+  return_url: z.url(),
+});
