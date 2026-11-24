@@ -414,4 +414,59 @@ describe('webhook payment das lojas', () => {
     const r = await chamarAviso(998877, { corpo: { type: 'mp-connect', action: 'outra', user_id: 998877, data: { id: '998877' } } });
     expect(await r.json()).toMatchObject({ processed: false });
   });
+
+  describe('avisos que o hub não trata (TASK-439)', () => {
+    const base = () => `${app.url}/webhook/mercadopago-lojas?project_id=${projetoExemplo.id}&account_ref=loja-1`;
+    const assin = (id: string) => ({ 'x-request-id': 'r1', 'x-signature': assinarAvisoMP({ segredo: 'outro', dataId: id, requestId: 'r1' }) });
+
+    it.each([
+      ['merchant_order no corpo, assinatura que não bate', '', { type: 'merchant_order', data: { id: '555' } }],
+      ['IPN merchant_order na query, sem corpo', '&topic=merchant_order&id=555', undefined],
+      ['tópico desconhecido na query (type)', '&type=topic_merchant_order_wh&data.id=555', { }],
+      ['data.id em formato url', '', { type: 'merchant_order', data: { id: 'https://api.mercadolibre.com/merchant_orders/555' } }],
+      ['sem tópico algum', '', {}],
+    ])('%s -> 200 sem processar e sem consultar o MP', async (_n, query, corpo) => {
+      const client = new FakeMPClient({ 'GET /v1/payments/1': fx('aprovado_cartao_3x') });
+      app = await sobe(client);
+      await semear(app);
+      const log = vi.spyOn(console, 'log').mockImplementation(() => {});
+      const r = await fetch(base() + query, { method: 'POST', headers: { 'content-type': 'application/json', ...assin('555') }, body: corpo === undefined ? undefined : JSON.stringify(corpo) });
+      expect(r.status).toBe(200);
+      expect(await r.json()).toEqual({ received: true, processed: false });
+      expect(client.calls).toHaveLength(0);
+      expect(app.envios).toHaveLength(0);
+      const saida = JSON.stringify(log.mock.calls);
+      expect(saida).toContain('aviso ignorado');
+      expect(saida).not.toContain('555');
+    });
+
+    it('payment com assinatura inválida continua 401, em qualquer formato, e o log traz o tópico e a forma do id sem o valor', async () => {
+      const client = new FakeMPClient({ 'GET /v1/payments/1': fx('aprovado_cartao_3x') });
+      app = await sobe(client);
+      await semear(app);
+      const err = vi.spyOn(console, 'error').mockImplementation(() => {});
+      for (const [query, corpo] of [
+        ['', { type: 'payment', data: { id: '123456' } }],
+        ['&topic=payment&id=123456', undefined],
+        ['&type=payment&data.id=123456', undefined],
+      ] as const) {
+        const r = await fetch(base() + query, { method: 'POST', headers: { 'content-type': 'application/json', ...assin('123456') }, body: corpo ? JSON.stringify(corpo) : undefined });
+        expect(r.status).toBe(401);
+      }
+      expect(client.calls).toHaveLength(0);
+      const saida = JSON.stringify(err.mock.calls);
+      expect(saida).toContain('topico=payment(corpo.type)');
+      expect(saida).toContain('topico=payment(query.topic)');
+      expect(saida).toContain('data.id=numerico(6)(query.id)');
+      expect(saida).toContain('account_ref=sim');
+      expect(saida).not.toContain('123456');
+      expect(saida).not.toContain('x-signature=ts');
+    });
+
+    it('mp-connect com assinatura inválida continua 401', async () => {
+      app = await sobe(new FakeMPClient({}));
+      const r = await fetch(base(), { method: 'POST', headers: { 'content-type': 'application/json', ...assin('998877') }, body: JSON.stringify({ type: 'mp-connect', action: 'application.deauthorized', user_id: 998877 }) });
+      expect(r.status).toBe(401);
+    });
+  });
 });

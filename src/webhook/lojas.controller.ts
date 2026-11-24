@@ -58,14 +58,28 @@ export function createWebhookLojasHandler(deps: AppDeps) {
         corpo = {};
       }
       const topico = um(req.query['type']) ?? um(req.query['topic']) ?? corpo.type;
+      const origemTopico = um(req.query['type']) ? 'query.type' : um(req.query['topic']) ? 'query.topic' : corpo.type ? 'corpo.type' : 'nenhuma';
+      const origemId = um(req.query['data.id']) ? 'query.data.id' : um(req.query['id']) ? 'query.id' : corpo.data?.id !== undefined ? 'corpo.data.id' : 'nenhuma';
       const dataIdBruto = um(req.query['data.id']) ?? um(req.query['id']) ?? corpo.data?.id;
       const dataId = dataIdBruto !== undefined ? String(dataIdBruto) : undefined;
 
       const xSignature = um(req.headers['x-signature']);
+      // Só `payment` e `mp-connect` são tratados. Qualquer outro tópico (merchant_order, IPN etc.) não faz nada:
+      // responde 200 sem exigir assinatura, para o MP não reenviar por dias.
+      const tratado = topico === 'payment' || topico === 'mp-connect';
+      if (!tratado) {
+        console.log(
+          `[${project.name}] [${GATEWAY_LOJAS}] aviso ignorado: ${descreverAviso({ topico, origemTopico, origemId, dataId, action: corpo.action, accountRef: um(req.query['account_ref']), xSignature, xRequestId: um(req.headers['x-request-id']) })}`
+        );
+        res.status(200).json({ received: true, processed: false });
+        return;
+      }
       if (xSignature) {
         const v = verificarAssinaturaMP({ xSignature, xRequestId: um(req.headers['x-request-id']), dataId, segredo: cfg.webhook_secret });
         if (!v.ok) {
-          console.error(`[${project.name}] [${GATEWAY_LOJAS}] aviso recusado: ${v.motivo}`);
+          console.error(
+            `[${project.name}] [${GATEWAY_LOJAS}] aviso recusado: ${v.motivo} ${descreverAviso({ topico, origemTopico, origemId, dataId, action: corpo.action, accountRef: um(req.query['account_ref']), xSignature, xRequestId: um(req.headers['x-request-id']) })}`
+          );
           res.status(401).json({ error: 'Invalid signature' });
           return;
         }
@@ -106,6 +120,31 @@ export function createWebhookLojasHandler(deps: AppDeps) {
       res.status(500).json({ error: 'Internal error' });
     }
   };
+}
+
+/** Forma do `data.id` sem expor o valor: numérico, alfanumérico, url, outro ou ausente. */
+export function formaDoDataId(id: string | undefined): string {
+  if (!id) return 'ausente';
+  if (/^\d+$/.test(id)) return `numerico(${id.length})`;
+  if (/^[a-zA-Z0-9]+$/.test(id)) return `alfanumerico(${id.length})`;
+  if (/^https?:\/\//i.test(id)) return 'url';
+  return `outro(${id.length})`;
+}
+
+/** Descrição do aviso para o log: só metadados (nada de segredo, token nem dado pessoal). */
+function descreverAviso(a: {
+  topico: string | undefined; origemTopico: string; origemId: string; dataId: string | undefined;
+  action: string | undefined; accountRef: string | undefined; xSignature: string | undefined; xRequestId: string | undefined;
+}): string {
+  const limpo = (v: string | undefined) => (v && /^[A-Za-z0-9_.:-]{1,40}$/.test(v) ? v : v ? 'invalido' : '-');
+  return [
+    `topico=${limpo(a.topico)}(${a.origemTopico})`,
+    `action=${limpo(a.action)}`,
+    `data.id=${formaDoDataId(a.dataId)}(${a.origemId})`,
+    `account_ref=${a.accountRef ? 'sim' : 'nao'}`,
+    `x-signature=${a.xSignature ? 'sim' : 'nao'}`,
+    `x-request-id=${a.xRequestId ? 'sim' : 'nao'}`,
+  ].join(' ');
 }
 
 function lerAviso(rawBody: Buffer): unknown {
